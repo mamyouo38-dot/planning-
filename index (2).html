@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stratège · Tableau de Bord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080f;--s1:#0d0f1a;--s2:#12152200;--s3:#1a1e2e;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.13);
+  --tx:#e2e5f0;--mu:#6b7494;--mu2:#4a5170;
+  --a:#6c63ff;--a2:#9b5cfc;--a3:#c084fc;
+  --g:#10d9a0;--g2:#06b6d4;
+  --o:#f59e0b;--o2:#f97316;
+  --r:#ef4444;--r2:#ec4899;
+  --p:#818cf8;
+  --ff:'Space Grotesk',sans-serif;
+  --fm:'JetBrains Mono',monospace;
+  --fs:'Playfair Display',serif;
+  --rad:14px;--rad2:20px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:var(--ff);min-height:100vh;overflow-x:hidden}
+
+/* GRAIN */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.025;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* AMBIENT GLOW */
+.glow-orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
+.glow-orb.a{width:600px;height:600px;background:rgba(108,99,255,.06);top:-200px;left:-100px}
+.glow-orb.b{width:500px;height:500px;background:rgba(16,217,160,.04);bottom:-150px;right:-100px}
+
+/* LAYOUT */
+.layout{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* SIDEBAR */
+.sidebar{width:260px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100;
+  transition:transform .3s cubic-bezier(.4,0,.2,1)}
+
+.sb-top{padding:1.75rem 1.5rem 1.25rem;border-bottom:1px solid var(--bd)}
+.sb-logo{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.sb-logo-icon{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--a),var(--a2));
+  display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.sb-logo-text{font-family:var(--fs);font-size:1.05rem;font-style:italic;color:var(--tx)}
+.sb-logo-sub{font-family:var(--fm);font-size:.58rem;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
+
+/* XP BAR */
+.xp-wrap{background:rgba(255,255,255,.04);border-radius:8px;padding:.75rem}
+.xp-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.xp-label{font-family:var(--fm);font-size:.6rem;color:var(--mu);letter-spacing:.08em;text-transform:uppercase}
+.xp-val{font-family:var(--fm);font-size:.7rem;color:var(--a);font-weight:500}
+.xp-track{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+.xp-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--a),var(--a2));transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* NAV */
+.sb-nav{flex:1;overflow-y:auto;padding:1rem 0}
+.sb-nav::-webkit-scrollbar{width:0}
+.nav-section{font-family:var(--fm);font-size:.55rem;color:var(--mu2);letter-spacing:.12em;
+  text-transform:uppercase;padding:.9rem 1.5rem .3rem}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:.6rem 1.25rem;
+  background:none;border:none;color:var(--mu);font-family:var(--ff);font-size:.82rem;font-weight:500;
+  cursor:pointer;transition:all .18s;border-left:2px solid transparent;text-align:left;
+  border-radius:0}
+.nav-btn:hover{color:var(--tx);background:rgba(255,255,255,.03)}
+.nav-btn.active{color:var(--a);border-left-color:var(--a);background:rgba(108,99,255,.08)}
+.nav-icon{font-size:.95rem;width:22px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;font-family:var(--fm);font-size:.58rem;background:rgba(108,99,255,.2);
+  color:var(--a);padding:2px 7px;border-radius:20px}
+
+/* STREAK */
+.sb-bottom{padding:1.25rem 1.5rem;border-top:1px solid var(--bd)}
+.streak-card{background:linear-gradient(135deg,rgba(108,99,255,.1),rgba(16,217,160,.07));
+  border:1px solid rgba(108,99,255,.2);border-radius:var(--rad);padding:.9rem}
+.streak-row{display:flex;align-items:center;gap:8px}
+.streak-fire{font-size:1.4rem}
+.streak-num{font-family:var(--fm);font-size:1.6rem;font-weight:500;color:var(--o);line-height:1}
+.streak-label{font-size:.7rem;color:var(--mu)}
+
+/* MAIN */
+.main{margin-left:260px;min-height:100vh;flex:1}
+.view{display:none;padding:2rem 2.5rem;animation:fadein .25s ease}
+.view.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE HEADER */
+.ph{margin-bottom:2rem}
+.ph-eyebrow{font-family:var(--fm);font-size:.6rem;color:var(--a);letter-spacing:.15em;
+  text-transform:uppercase;margin-bottom:.4rem}
+.ph-title{font-size:1.9rem;font-weight:700;background:linear-gradient(135deg,var(--tx) 30%,var(--mu));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.15}
+.ph-sub{font-size:.84rem;color:var(--mu);margin-top:.4rem;line-height:1.6}
+
+/* CARDS */
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--rad2);
+  padding:1.5rem;transition:border-color .2s}
+.card:hover{border-color:var(--bd2)}
+.card-title{font-family:var(--fm);font-size:.62rem;color:var(--mu);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.card-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+/* GRIDS */
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-bottom:1.25rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+
+/* STAT */
+.stat{background:var(--s1);border:1px solid var(--bd);border-radius:var(--rad2);
+  padding:1.25rem 1.5rem;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.stat.a::before{background:linear-gradient(90deg,var(--a),var(--a2))}
+.stat.g::before{background:linear-gradient(90deg,var(--g),var(--g2))}
+.stat.o::before{background:linear-gradient(90deg,var(--o),var(--o2))}
+.stat.r::before{background:linear-gradient(90deg,var(--r),var(--r2))}
+.stat-lbl{font-family:var(--fm);font-size:.6rem;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
+.stat-val{font-size:1.9rem;font-weight:700;line-height:1}
+.stat-val.a{color:var(--a)}.stat-val.g{color:var(--g)}.stat-val.o{color:var(--o)}.stat-val.r{color:var(--r)}
+.stat-sub{font-size:.7rem;color:var(--mu);margin-top:.3rem}
+
+/* PROGRESS */
+.prog-wrap{margin-bottom:.9rem}
+.prog-hd{display:flex;justify-content:space-between;margin-bottom:.35rem}
+.prog-name{font-size:.8rem;font-weight:500}
+.prog-pct{font-family:var(--fm);font-size:.7rem;color:var(--mu)}
+.prog-track{height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.pf-a{background:linear-gradient(90deg,var(--a),var(--a2))}
+.pf-g{background:linear-gradient(90deg,var(--g),var(--g2))}
+.pf-o{background:linear-gradient(90deg,var(--o),var(--o2))}
+.pf-r{background:linear-gradient(90deg,var(--r),var(--r2))}
+
+/* TAGS */
+.tag{font-family:var(--fm);font-size:.6rem;padding:2px 8px;border-radius:20px;font-weight:400}
+.tag.a{background:rgba(108,99,255,.15);color:var(--a)}
+.tag.g{background:rgba(16,217,160,.15);color:var(--g)}
+.tag.o{background:rgba(245,158,11,.15);color:var(--o)}
+.tag.r{background:rgba(239,68,68,.15);color:var(--r)}
+.tag.p{background:rgba(129,140,248,.15);color:var(--p)}
+
+/* BTN */
+.btn{background:var(--a);color:#fff;border:none;border-radius:10px;padding:.55rem 1.2rem;
+  font-family:var(--ff);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .18s;letter-spacing:.01em}
+.btn:hover{background:var(--a2);transform:translateY(-1px)}
+.btn.ghost{background:transparent;color:var(--mu);border:1px solid var(--bd2)}
+.btn.ghost:hover{background:rgba(255,255,255,.05);color:var(--tx)}
+.btn.sm{padding:.35rem .9rem;font-size:.72rem}
+.btn.danger{background:var(--r)}
+.btn.success{background:var(--g);color:#000}
+
+/* ALERTS */
+.alert{border-radius:var(--rad);padding:.9rem 1.1rem;margin-bottom:1rem;
+  font-size:.8rem;line-height:1.65;display:flex;gap:10px;align-items:flex-start}
+.alert-i{font-size:1rem;flex-shrink:0;margin-top:1px}
+.alert.urg{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#fca5a5}
+.alert.inf{background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);color:#a5b4fc}
+.alert.ok{background:rgba(16,217,160,.08);border:1px solid rgba(16,217,160,.2);color:#6ee7b7}
+.alert.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+
+/* CHECKLIST */
+.chk-item{display:flex;align-items:flex-start;gap:10px;padding:.75rem 0;
+  border-bottom:1px solid var(--bd);cursor:pointer;transition:all .15s}
+.chk-item:last-child{border-bottom:none}
+.chk-item:hover{padding-left:4px}
+.chk-box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--bd2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  margin-top:2px;transition:all .2s;font-size:.65rem}
+.chk-box.done{background:var(--g);border-color:var(--g);color:#000}
+.chk-title{font-size:.84rem;font-weight:500;transition:color .2s}
+.chk-title.done{color:var(--mu);text-decoration:line-through}
+.chk-desc{font-size:.74rem;color:var(--mu);margin-top:2px;line-height:1.55}
+
+/* SCORE INPUT */
+.score-row{display:flex;align-items:center;gap:.6rem;margin-top:.75rem;flex-wrap:wrap}
+.score-inp{background:rgba(255,255,255,.05);border:1px solid var(--bd2);border-radius:8px;
+  color:var(--tx);font-family:var(--fm);font-size:.95rem;padding:.4rem .7rem;
+  width:75px;text-align:center;transition:border-color .2s}
+.score-inp:focus{outline:none;border-color:var(--a)}
+.score-inp::-webkit-inner-spin-button{display:none}
+
+/* ═══ CHART CONTAINERS ═══ */
+.chart-box{position:relative;width:100%;border-radius:var(--rad);overflow:hidden}
+.chart-box canvas{width:100%!important}
+
+/* ═══ TIMER ═══ */
+.timer-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 0}
+.timer-ring{position:relative;width:220px;height:220px}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring .bg-ring{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8}
+.timer-ring .fg-ring{fill:none;stroke-width:8;stroke-linecap:round;
+  transition:stroke-dashoffset .5s linear;stroke:url(#timer-grad)}
+.timer-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.timer-time{font-family:var(--fm);font-size:2.6rem;font-weight:500;letter-spacing:-.02em;color:var(--tx)}
+.timer-mode{font-family:var(--fm);font-size:.62rem;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem}
+.timer-controls{display:flex;gap:.75rem;margin-top:1.5rem;flex-wrap:wrap;justify-content:center}
+.timer-select{background:rgba(255,255,255,.05);border:1px solid var(--bd2);color:var(--tx);
+  font-family:var(--fm);font-size:.75rem;padding:.4rem .8rem;border-radius:8px;cursor:pointer}
+.session-log{margin-top:1.5rem}
+.session-item{display:flex;align-items:center;gap:.75rem;padding:.5rem 0;
+  border-bottom:1px solid var(--bd);font-size:.78rem}
+.session-item:last-child{border-bottom:none}
+.session-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.session-dot.pm{background:var(--r)}.session-dot.fm{background:var(--o)}.session-dot.mf{background:var(--g)}.session-dot.en{background:var(--a)}.session-dot.gen{background:var(--p)}
+
+/* ═══ QUIZ ═══ */
+.quiz-wrap{max-width:700px;margin:0 auto}
+.quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.quiz-prog-bar{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;margin:0 1rem;overflow:hidden}
+.quiz-prog-fill{height:100%;background:linear-gradient(90deg,var(--a),var(--g));border-radius:2px;transition:width .4s ease}
+.quiz-score-badge{font-family:var(--fm);font-size:.7rem;color:var(--mu)}
+.quiz-q{background:var(--s1);border:1px solid var(--bd2);border-radius:var(--rad2);padding:1.75rem;margin-bottom:1rem}
+.quiz-q-num{font-family:var(--fm);font-size:.6rem;color:var(--a);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem}
+.quiz-q-text{font-size:1rem;font-weight:500;line-height:1.55;margin-bottom:1.25rem}
+.quiz-opts{display:flex;flex-direction:column;gap:.6rem}
+.quiz-opt{background:rgba(255,255,255,.04);border:1.5px solid var(--bd2);border-radius:10px;
+  padding:.85rem 1.1rem;cursor:pointer;font-size:.84rem;line-height:1.5;transition:all .18s;text-align:left;color:var(--tx);font-family:var(--ff)}
+.quiz-opt:hover:not(:disabled){background:rgba(108,99,255,.08);border-color:rgba(108,99,255,.3)}
+.quiz-opt.correct{background:rgba(16,217,160,.1);border-color:var(--g);color:var(--g)}
+.quiz-opt.wrong{background:rgba(239,68,68,.1);border-color:var(--r);color:var(--r)}
+.quiz-opt:disabled{cursor:default}
+.quiz-explain{background:rgba(255,255,255,.03);border-radius:10px;padding:.9rem 1.1rem;
+  margin-top:.75rem;font-size:.8rem;color:var(--mu);line-height:1.65;border-left:3px solid var(--a)}
+.quiz-result{text-align:center;padding:2rem}
+.quiz-result-score{font-family:var(--fm);font-size:3.5rem;font-weight:700;background:linear-gradient(135deg,var(--a),var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.quiz-result-label{font-size:1rem;color:var(--mu);margin-top:.4rem}
+.quiz-subject-sel{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.quiz-subject-btn{background:rgba(255,255,255,.04);border:1.5px solid var(--bd2);border-radius:10px;
+  padding:.6rem 1.2rem;cursor:pointer;font-size:.8rem;color:var(--mu);font-family:var(--ff);transition:all .18s}
+.quiz-subject-btn:hover,.quiz-subject-btn.sel{background:rgba(108,99,255,.1);border-color:var(--a);color:var(--a)}
+.quiz-difficulty{display:flex;gap:.5rem;margin-bottom:1.5rem}
+.diff-btn{background:rgba(255,255,255,.04);border:1.5px solid var(--bd2);border-radius:8px;
+  padding:.4rem .9rem;cursor:pointer;font-size:.75rem;color:var(--mu);font-family:var(--fm);transition:all .18s}
+.diff-btn.sel.easy{background:rgba(16,217,160,.1);border-color:var(--g);color:var(--g)}
+.diff-btn.sel.medium{background:rgba(245,158,11,.1);border-color:var(--o);color:var(--o)}
+.diff-btn.sel.hard{background:rgba(239,68,68,.1);border-color:var(--r);color:var(--r)}
+
+/* ═══ CALENDAR ═══ */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.cal-month{font-size:1rem;font-weight:600}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{text-align:center;font-family:var(--fm);font-size:.58rem;color:var(--mu);
+  letter-spacing:.08em;padding:.4rem 0;text-transform:uppercase}
+.cal-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;font-size:.78rem;
+  transition:all .15s;background:rgba(255,255,255,.02);border:1px solid transparent;position:relative}
+.cal-day:hover{background:rgba(108,99,255,.1);border-color:rgba(108,99,255,.2)}
+.cal-day.today{background:rgba(108,99,255,.15);border-color:rgba(108,99,255,.4);color:var(--a);font-weight:700}
+.cal-day.other-month{opacity:.25}
+.cal-day.has-session::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;
+  border-radius:50%;background:var(--g)}
+.cal-day.has-task::after{content:'';position:absolute;bottom:4px;width:4px;height:4px;
+  border-radius:50%;background:var(--o)}
+.cal-day.selected{border-color:var(--a2);background:rgba(155,92,252,.1)}
+.cal-legend{display:flex;gap:1rem;margin-top:.75rem;font-size:.7rem;color:var(--mu);flex-wrap:wrap}
+.cal-legend-item{display:flex;align-items:center;gap:5px}
+.cal-legend-dot{width:8px;height:8px;border-radius:50%}
+.cal-day-detail{margin-top:1rem;border-radius:var(--rad);background:rgba(255,255,255,.03);
+  border:1px solid var(--bd2);padding:1rem;min-height:80px}
+.cal-task-item{display:flex;align-items:center;gap:.6rem;padding:.4rem 0;font-size:.8rem;
+  border-bottom:1px solid var(--bd)}
+.cal-task-item:last-child{border-bottom:none}
+.task-inp{background:rgba(255,255,255,.05);border:1px solid var(--bd2);border-radius:8px;
+  color:var(--tx);font-family:var(--ff);font-size:.8rem;padding:.4rem .8rem;
+  flex:1;transition:border-color .2s}
+.task-inp:focus{outline:none;border-color:var(--a)}
+.task-cat-sel{background:rgba(255,255,255,.05);border:1px solid var(--bd2);border-radius:8px;
+  color:var(--tx);font-family:var(--fm);font-size:.72rem;padding:.4rem .6rem;cursor:pointer}
+
+/* ═══ HEATMAP ═══ */
+.heatmap{display:flex;gap:3px;flex-wrap:wrap;margin-top:.5rem}
+.hm-day{width:13px;height:13px;border-radius:3px;cursor:pointer;transition:transform .1s}
+.hm-day:hover{transform:scale(1.4)}
+.hm-day.l0{background:rgba(255,255,255,.04)}
+.hm-day.l1{background:rgba(108,99,255,.25)}
+.hm-day.l2{background:rgba(108,99,255,.5)}
+.hm-day.l3{background:rgba(108,99,255,.75)}
+.hm-day.l4{background:var(--a)}
+.hm-legend{display:flex;align-items:center;gap:5px;margin-top:.6rem;font-size:.65rem;color:var(--mu);font-family:var(--fm)}
+.hm-swatch{width:10px;height:10px;border-radius:2px}
+
+/* ═══ TIMELINE ═══ */
+.tl{position:relative;padding-left:1.75rem}
+.tl::before{content:'';position:absolute;left:6px;top:0;bottom:0;width:1px;background:var(--bd2)}
+.tl-item{position:relative;margin-bottom:1.75rem}
+.tl-dot{position:absolute;left:-1.75rem;top:3px;width:13px;height:13px;border-radius:50%;
+  border:2px solid var(--bd2);background:var(--bg);transition:all .2s}
+.tl-dot.done{background:var(--g);border-color:var(--g);box-shadow:0 0 8px rgba(16,217,160,.4)}
+.tl-dot.cur{background:var(--a);border-color:var(--a);box-shadow:0 0 0 4px rgba(108,99,255,.2)}
+.tl-dot.pend{background:var(--s3)}
+.tl-month{font-family:var(--fm);font-size:.6rem;color:var(--a);letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:.25rem}
+.tl-title{font-size:.9rem;font-weight:600;margin-bottom:.25rem}
+.tl-desc{font-size:.77rem;color:var(--mu);line-height:1.6}
+.tl-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:.4rem}
+
+/* ═══ NOTES ═══ */
+.note-area{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--bd2);
+  border-radius:var(--rad);color:var(--tx);font-family:var(--ff);font-size:.82rem;
+  padding:.85rem 1rem;resize:vertical;min-height:90px;transition:border-color .2s}
+.note-area:focus{outline:none;border-color:var(--a)}
+.note-area::placeholder{color:var(--mu)}
+.note-item{background:rgba(255,255,255,.03);border-radius:var(--rad);
+  padding:.9rem 1rem;margin-bottom:.6rem;border-left:3px solid transparent}
+.note-item.pm{border-color:var(--r)}.note-item.fm{border-color:var(--o)}
+.note-item.mf{border-color:var(--g)}.note-item.en{border-color:var(--a)}.note-item.gen{border-color:var(--p)}
+.note-meta{font-family:var(--fm);font-size:.62rem;color:var(--mu);margin-bottom:.4rem;
+  display:flex;align-items:center;gap:.5rem}
+
+/* SUBJECT TOPICS */
+.topic-item{display:flex;align-items:center;gap:10px;padding:.6rem 0;
+  border-bottom:1px solid var(--bd);cursor:pointer;transition:all .15s}
+.topic-item:last-child{border-bottom:none}
+.topic-item:hover{padding-left:4px}
+.topic-ck{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--bd2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:.65rem;transition:all .2s}
+.topic-ck.done{background:var(--g);border-color:var(--g);color:#000}
+.topic-name{flex:1;font-size:.82rem;transition:color .2s}
+.topic-name.done{color:var(--mu);text-decoration:line-through}
+
+/* ENGLISH PHASE */
+.ep-block{border:1px solid var(--bd);border-radius:var(--rad2);overflow:hidden;margin-bottom:1rem}
+.ep-hd{padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.ep-hd.a{background:rgba(108,99,255,.07)}.ep-hd.o{background:rgba(245,158,11,.07)}
+.ep-hd.g{background:rgba(16,217,160,.07)}.ep-hd.r{background:rgba(239,68,68,.07)}
+.ep-title{font-size:.88rem;font-weight:600}
+.ep-period{font-family:var(--fm);font-size:.65rem;color:var(--mu);margin-top:2px}
+.ep-arr{font-size:.8rem;color:var(--mu);transition:transform .2s}
+.ep-arr.open{transform:rotate(180deg)}
+.ep-body{padding:1.25rem 1.5rem;display:none}
+.ep-body.open{display:block}
+.wk-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.wk-table th{text-align:left;padding:.45rem .7rem;font-family:var(--fm);font-size:.6rem;
+  color:var(--mu);letter-spacing:.08em;border-bottom:1px solid var(--bd)}
+.wk-table td{padding:.55rem .7rem;border-bottom:1px solid var(--bd);vertical-align:top}
+.wk-table tr:last-child td{border-bottom:none}
+.wk-table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* CONCOURS */
+.conc-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--rad2);
+  padding:1.1rem 1.5rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1.5rem}
+.conc-info{flex:1}
+.conc-name{font-size:.88rem;font-weight:600;margin-bottom:.15rem}
+.conc-meta{font-family:var(--fm);font-size:.66rem;color:var(--mu)}
+.conc-date{font-family:var(--fm);font-size:.75rem;color:var(--o);font-weight:500;text-align:right}
+
+/* HAMBURGER */
+.hamburger{display:none;position:fixed;top:1rem;left:1rem;z-index:200;
+  background:var(--s1);border:1px solid var(--bd2);border-radius:8px;
+  width:38px;height:38px;cursor:pointer;flex-direction:column;
+  align-items:center;justify-content:center;gap:5px}
+.hamburger span{width:16px;height:1.5px;background:var(--tx);border-radius:1px;transition:all .2s}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90}
+
+/* SCORE HISTORY */
+.score-history-item{display:flex;align-items:center;gap:.75rem;padding:.5rem 0;
+  border-bottom:1px solid var(--bd);font-size:.78rem}
+.score-history-item:last-child{border-bottom:none}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:1.5rem;right:1.5rem;z-index:1000;
+  background:var(--s3);border:1px solid var(--bd2);border-radius:var(--rad);
+  padding:.85rem 1.25rem;font-size:.82rem;transform:translateY(100px);opacity:0;
+  transition:all .35s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:.6rem;
+  box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.notif.show{transform:translateY(0);opacity:1}
+
+/* MOBILE */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .view{padding:1.5rem 1rem}
+  .hamburger{display:flex}
+  .overlay.show{display:block}
+  .g3,.g4{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}
+  .conc-card{flex-direction:column;align-items:flex-start;gap:.5rem}
+}
+@media(max-width:480px){.g3,.g4{grid-template-columns:1fr}}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+
+<button class="hamburger" id="hbg" onclick="toggleSb()"><span></span><span></span><span></span></button>
+<div class="overlay" id="ov" onclick="toggleSb()"></div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sb-top">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">⚡</div>
+      <div>
+        <div class="sb-logo-text">Stratège</div>
+        <div class="sb-logo-sub">L3 → M1 Conseil</div>
+      </div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-top">
+        <span class="xp-label">Progression XP</span>
+        <span class="xp-val" id="xp-val">0 XP</span>
+      </div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="nav-section">Général</div>
+    <button class="nav-btn active" onclick="go('dash')"><span class="nav-icon">⌘</span>Dashboard</button>
+    <button class="nav-btn" onclick="go('planning')"><span class="nav-icon">◈</span>Planning</button>
+    <button class="nav-btn" onclick="go('cal')"><span class="nav-icon">◷</span>Calendrier</button>
+
+    <div class="nav-section">Matières L3</div>
+    <button class="nav-btn" onclick="go('pm')"><span class="nav-icon">◐</span>Pol. Monétaire <span class="nav-badge" id="nb-pm">0%</span></button>
+    <button class="nav-btn" onclick="go('fm')"><span class="nav-icon">◑</span>Finance Marché <span class="nav-badge" id="nb-fm">0%</span></button>
+    <button class="nav-btn" onclick="go('mf')"><span class="nav-icon">◒</span>Marchés Fin. <span class="nav-badge" id="nb-mf">0%</span></button>
+
+    <div class="nav-section">Préparation</div>
+    <button class="nav-btn" onclick="go('en')"><span class="nav-icon">⊕</span>Anglais</button>
+    <button class="nav-btn" onclick="go('quiz')"><span class="nav-icon">◉</span>Quiz Révision</button>
+    <button class="nav-btn" onclick="go('timer')"><span class="nav-icon">◌</span>Minuteur Pomodoro</button>
+    <button class="nav-btn" onclick="go('conc')"><span class="nav-icon">⊗</span>Concours</button>
+
+    <div class="nav-section">Suivi</div>
+    <button class="nav-btn" onclick="go('notes')"><span class="nav-icon">✦</span>Journal</button>
+  </nav>
+
+  <div class="sb-bottom">
+    <div class="streak-card">
+      <div class="streak-row">
+        <span class="streak-fire">🔥</span>
+        <div>
+          <div style="display:flex;align-items:baseline;gap:5px">
+            <span class="streak-num" id="streak-num">0</span>
+            <span class="streak-label">jours de suite</span>
+          </div>
+          <div style="font-size:.65rem;color:var(--mu);font-family:var(--fm);margin-top:1px" id="streak-sub">Commence aujourd'hui !</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ══ DASHBOARD ══ -->
+<div class="view active" id="view-dash">
+  <div class="ph">
+    <div class="ph-eyebrow">Vue d'ensemble</div>
+    <h1 class="ph-title">Tableau de bord</h1>
+    <p class="ph-sub" id="dash-date"></p>
+  </div>
+
+  <div class="alert urg" id="dash-alert-main">
+    <span class="alert-i">⚡</span>
+    <div><strong>Priorité absolue :</strong> Tes 3 matières sont sous 10. Partiels décembre dans <strong id="days-to-dec">—</strong> jours. Commence par Politique Monétaire ce soir.</div>
+  </div>
+
+  <div class="g4">
+    <div class="stat a"><div class="stat-lbl">Pol. Monétaire</div><div class="stat-val a" id="ds-pm">—</div><div class="stat-sub">Cible : 11 déc. · 13 juin</div></div>
+    <div class="stat o"><div class="stat-lbl">Finance Marché</div><div class="stat-val o" id="ds-fm">—</div><div class="stat-sub">Cible : 11 déc. · 13 juin</div></div>
+    <div class="stat g"><div class="stat-lbl">Marchés Fin.</div><div class="stat-val g" id="ds-mf">—</div><div class="stat-sub">Cible : 11 déc. · 13 juin</div></div>
+    <div class="stat r"><div class="stat-lbl">Sessions aujourd'hui</div><div class="stat-val r" id="ds-ses">0</div><div class="stat-sub">Objectif : 3 sessions/jour</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Progression chapitres</div>
+      <div id="dash-prog"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Évolution des notes</div>
+      <div class="chart-box" style="height:180px"><canvas id="chart-notes"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Activité — 91 derniers jours</div>
+      <div class="heatmap" id="heatmap"></div>
+      <div class="hm-legend">
+        <span>Moins</span>
+        <div class="hm-swatch" style="background:rgba(255,255,255,.04)"></div>
+        <div class="hm-swatch" style="background:rgba(108,99,255,.25)"></div>
+        <div class="hm-swatch" style="background:rgba(108,99,255,.5)"></div>
+        <div class="hm-swatch" style="background:var(--a)"></div>
+        <span>Plus</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Temps de travail par matière</div>
+      <div class="chart-box" style="height:200px"><canvas id="chart-time"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PLANNING ══ -->
+<div class="view" id="view-planning">
+  <div class="ph"><div class="ph-eyebrow">Juillet 2025 → Juin 2026</div><h1 class="ph-title">Planning global</h1></div>
+  <div class="tl" id="tl-content"></div>
+</div>
+
+<!-- ══ CALENDRIER ══ -->
+<div class="view" id="view-cal">
+  <div class="ph"><div class="ph-eyebrow">Organisation</div><h1 class="ph-title">Calendrier interactif</h1></div>
+  <div class="g2">
+    <div class="card">
+      <div class="cal-nav">
+        <button class="btn ghost sm" onclick="calPrev()">← Préc.</button>
+        <span class="cal-month" id="cal-month-label"></span>
+        <button class="btn ghost sm" onclick="calNext()">Suiv. →</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--g)"></div>Session de travail</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--o)"></div>Tâche planifiée</div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Jour sélectionné — <span id="cal-selected-label">Sélectionne un jour</span></div>
+        <div class="cal-day-detail" id="cal-detail"><p style="font-size:.8rem;color:var(--mu)">Clique sur un jour pour voir ou ajouter des tâches.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ajouter une tâche</div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+          <input class="task-inp" id="task-inp" placeholder="Ex: Réviser CAPM, Exercice Vernimmen...">
+          <select class="task-cat-sel" id="task-cat">
+            <option value="pm">Pol. Mon.</option>
+            <option value="fm">Finance</option>
+            <option value="mf">Marchés</option>
+            <option value="en">Anglais</option>
+            <option value="gen">Général</option>
+          </select>
+        </div>
+        <button class="btn sm" onclick="addTask()">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POL MONETAIRE ══ -->
+<div class="view" id="view-pm">
+  <div class="ph"><div class="ph-eyebrow">Matière L3 · Partiels déc. + juin</div><h1 class="ph-title">Politique Monétaire</h1></div>
+  <div class="g2" style="margin-bottom:1.25rem">
+    <div class="stat o">
+      <div class="stat-lbl">Note actuelle</div>
+      <div class="stat-val o" id="note-pm-v">—</div>
+      <div class="stat-sub">Cible décembre : 11 · Juin : 13+</div>
+      <div class="score-row">
+        <input type="number" class="score-inp" id="inp-pm" min="0" max="20" step="0.5" placeholder="Ex: 9.5">
+        <button class="btn sm" onclick="saveScore('pm')">Enregistrer</button>
+      </div>
+    </div>
+    <div class="stat a">
+      <div class="stat-lbl">Chapitres validés</div>
+      <div class="stat-val a" id="pm-chap">0/8</div>
+      <div class="stat-sub">Progresse chapitre par chapitre</div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Chapitres à maîtriser</div>
+      <div id="topics-pm"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Évolution de la note</div>
+        <div class="chart-box" style="height:160px"><canvas id="chart-pm"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ressources clés</div>
+        <div style="font-size:.8rem;color:var(--mu);line-height:1.85">
+          📗 <strong style="color:var(--tx)">Mishkin</strong> — chapitres 15-20 (mécanismes)<br>
+          🏦 <strong style="color:var(--tx)">Banque de France</strong> — fiches pédagogiques gratuites<br>
+          🎙 <strong style="color:var(--tx)">Discours BCE</strong> — politique depuis 2022<br>
+          📺 <strong style="color:var(--tx)">YouTube</strong> — "Finance pour tous" (mécanismes visuels)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FINANCE MARCHE ══ -->
+<div class="view" id="view-fm">
+  <div class="ph"><div class="ph-eyebrow">Matière L3 · Partiels déc. + juin</div><h1 class="ph-title">Finance de Marché</h1></div>
+  <div class="g2" style="margin-bottom:1.25rem">
+    <div class="stat o">
+      <div class="stat-lbl">Note actuelle</div>
+      <div class="stat-val o" id="note-fm-v">—</div>
+      <div class="stat-sub">Cible décembre : 11 · Juin : 13+</div>
+      <div class="score-row">
+        <input type="number" class="score-inp" id="inp-fm" min="0" max="20" step="0.5" placeholder="Ex: 9.5">
+        <button class="btn sm" onclick="saveScore('fm')">Enregistrer</button>
+      </div>
+    </div>
+    <div class="stat a">
+      <div class="stat-lbl">Chapitres validés</div>
+      <div class="stat-val a" id="fm-chap">0/8</div>
+      <div class="stat-sub">3 exercices Vernimmen/semaine minimum</div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Chapitres à maîtriser</div>
+      <div id="topics-fm"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Évolution de la note</div>
+        <div class="chart-box" style="height:160px"><canvas id="chart-fm"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ressources clés</div>
+        <div style="font-size:.8rem;color:var(--mu);line-height:1.85">
+          📗 <strong style="color:var(--tx)">Vernimmen.net</strong> — exercices corrigés gratuits (3/semaine)<br>
+          🎓 <strong style="color:var(--tx)">YouTube HEC Paris Finance</strong> — vidéos par concept<br>
+          💻 <strong style="color:var(--tx)">Wall Street Prep (gratuit)</strong> — modélisation intro<br>
+          📊 <strong style="color:var(--tx)">Excel</strong> — pratique des calculs bêta, variance, CAPM
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MARCHES FIN ══ -->
+<div class="view" id="view-mf">
+  <div class="ph"><div class="ph-eyebrow">Matière L3 · Partiels déc. + juin</div><h1 class="ph-title">Marchés Financiers</h1></div>
+  <div class="g2" style="margin-bottom:1.25rem">
+    <div class="stat o">
+      <div class="stat-lbl">Note actuelle</div>
+      <div class="stat-val o" id="note-mf-v">—</div>
+      <div class="stat-sub">Cible décembre : 11 · Juin : 13+</div>
+      <div class="score-row">
+        <input type="number" class="score-inp" id="inp-mf" min="0" max="20" step="0.5" placeholder="Ex: 9.5">
+        <button class="btn sm" onclick="saveScore('mf')">Enregistrer</button>
+      </div>
+    </div>
+    <div class="stat a">
+      <div class="stat-lbl">Chapitres validés</div>
+      <div class="stat-val a" id="mf-chap">0/7</div>
+      <div class="stat-sub">Lecture Les Échos 10 min/jour</div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Chapitres à maîtriser</div>
+      <div id="topics-mf"></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Évolution de la note</div>
+        <div class="chart-box" style="height:160px"><canvas id="chart-mf"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ressources clés</div>
+        <div style="font-size:.8rem;color:var(--mu);line-height:1.85">
+          📰 <strong style="color:var(--tx)">Les Échos</strong> — 10 min/jour vocabulaire en contexte<br>
+          📗 <strong style="color:var(--tx)">Lévy-Garboua</strong> — marchés financiers en pratique<br>
+          🏛 <strong style="color:var(--tx)">AMF Éducation</strong> — site officiel régulateur (gratuit)<br>
+          📺 <strong style="color:var(--tx)">Arte/YouTube</strong> — documentaires crise 2008 (Inside Job)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANGLAIS ══ -->
+<div class="view" id="view-en">
+  <div class="ph"><div class="ph-eyebrow">Prép. concours · Juil. 2025 → Avr. 2026</div><h1 class="ph-title">Plan Anglais</h1></div>
+  <div class="alert urg"><span class="alert-i">⚡</span><div><strong>Jusqu'en décembre :</strong> Max 30 min/jour. Les matières L3 sont prioritaires. Intensification à partir de janvier.</div></div>
+  <div class="g3">
+    <div class="stat a"><div class="stat-lbl">Niveau actuel</div><div class="stat-val a">A2</div><div class="stat-sub">Estimé au démarrage</div></div>
+    <div class="stat g"><div class="stat-lbl">Cible IAE Message</div><div class="stat-val g">B1</div><div class="stat-sub">Avril 2026</div></div>
+    <div class="stat o"><div class="stat-lbl">Cible AST</div><div class="stat-val o">B2</div><div class="stat-sub">EDHEC / EM Lyon</div></div>
+  </div>
+  <div id="en-phases"></div>
+</div>
+
+<!-- ══ QUIZ ══ -->
+<div class="view" id="view-quiz">
+  <div class="ph"><div class="ph-eyebrow">Révision active</div><h1 class="ph-title">Quiz de révision</h1></div>
+  <div id="quiz-setup">
+    <div class="card" style="max-width:680px">
+      <div class="card-title">Choisir les matières</div>
+      <div class="quiz-subject-sel" id="quiz-subj-sel">
+        <button class="quiz-subject-btn sel" data-s="pm">Politique Monétaire</button>
+        <button class="quiz-subject-btn sel" data-s="fm">Finance de Marché</button>
+        <button class="quiz-subject-btn sel" data-s="mf">Marchés Financiers</button>
+      </div>
+      <div class="card-title">Difficulté</div>
+      <div class="quiz-difficulty">
+        <button class="diff-btn easy" data-d="easy">Facile</button>
+        <button class="diff-btn sel medium" data-d="medium">Moyen</button>
+        <button class="diff-btn hard" data-d="hard">Difficile</button>
+      </div>
+      <button class="btn" onclick="startQuiz()">Lancer le quiz →</button>
+    </div>
+    <div class="card" style="max-width:680px;margin-top:1rem">
+      <div class="card-title">Mes scores quiz</div>
+      <div id="quiz-history"></div>
+    </div>
+  </div>
+  <div id="quiz-active" style="display:none">
+    <div class="quiz-wrap">
+      <div class="quiz-header">
+        <span class="quiz-score-badge" id="qz-num">1/10</span>
+        <div class="quiz-prog-bar"><div class="quiz-prog-fill" id="qz-prog" style="width:10%"></div></div>
+        <span class="quiz-score-badge">✓ <span id="qz-score">0</span></span>
+      </div>
+      <div class="quiz-q" id="qz-q">
+        <div class="quiz-q-num" id="qz-cat"></div>
+        <div class="quiz-q-text" id="qz-text"></div>
+        <div class="quiz-opts" id="qz-opts"></div>
+        <div class="quiz-explain" id="qz-explain" style="display:none"></div>
+      </div>
+      <div style="display:flex;gap:.6rem;justify-content:flex-end">
+        <button class="btn ghost sm" onclick="endQuiz()">Terminer</button>
+        <button class="btn sm" id="qz-next" style="display:none" onclick="nextQ()">Question suivante →</button>
+      </div>
+    </div>
+  </div>
+  <div id="quiz-result" style="display:none">
+    <div class="quiz-wrap">
+      <div class="card quiz-result">
+        <div class="quiz-result-score" id="qr-score"></div>
+        <div class="quiz-result-label" id="qr-label"></div>
+        <div style="margin-top:1rem;font-size:.8rem;color:var(--mu)" id="qr-detail"></div>
+        <div style="margin-top:1.5rem;display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn" onclick="startQuiz()">Recommencer</button>
+          <button class="btn ghost" onclick="endQuiz()">Retour config</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TIMER ══ -->
+<div class="view" id="view-timer">
+  <div class="ph"><div class="ph-eyebrow">Focus</div><h1 class="ph-title">Minuteur Pomodoro</h1></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Session en cours</div>
+      <div class="timer-wrap">
+        <div class="timer-ring">
+          <svg width="220" height="220" viewBox="0 0 220 220">
+            <defs>
+              <linearGradient id="timer-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:var(--a)"/>
+                <stop offset="100%" style="stop-color:var(--g)"/>
+              </linearGradient>
+            </defs>
+            <circle class="bg-ring" cx="110" cy="110" r="98"/>
+            <circle class="fg-ring" cx="110" cy="110" r="98" id="timer-ring-fg"
+              stroke-dasharray="615.75" stroke-dashoffset="0"/>
+          </svg>
+          <div class="timer-text">
+            <div class="timer-time" id="timer-display">25:00</div>
+            <div class="timer-mode" id="timer-mode-label">Focus</div>
+          </div>
+        </div>
+        <div class="timer-controls">
+          <select class="timer-select" id="timer-subject">
+            <option value="pm">Pol. Monétaire</option>
+            <option value="fm">Finance Marché</option>
+            <option value="mf">Marchés Fin.</option>
+            <option value="en">Anglais</option>
+            <option value="gen">Général</option>
+          </select>
+          <select class="timer-select" id="timer-duration">
+            <option value="25">25 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+            <option value="15">15 min</option>
+          </select>
+        </div>
+        <div class="timer-controls">
+          <button class="btn" id="timer-btn" onclick="toggleTimer()">▶ Démarrer</button>
+          <button class="btn ghost" onclick="resetTimer()">↺ Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sessions du jour</div>
+      <div class="g2" style="margin-bottom:1rem">
+        <div style="text-align:center">
+          <div style="font-family:var(--fm);font-size:2rem;color:var(--a)" id="ses-count">0</div>
+          <div style="font-size:.72rem;color:var(--mu)">sessions complétées</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:var(--fm);font-size:2rem;color:var(--g)" id="ses-time">0h</div>
+          <div style="font-size:.72rem;color:var(--mu)">temps total</div>
+        </div>
+      </div>
+      <div class="session-log" id="session-log"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONCOURS ══ -->
+<div class="view" id="view-conc">
+  <div class="ph"><div class="ph-eyebrow">AST + IAE Message</div><h1 class="ph-title">Concours & Candidatures</h1></div>
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="card-title">Deadlines</div>
+    <div id="conc-list"></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Checklist AST</div>
+      <div id="ast-chk"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Checklist IAE Message</div>
+      <div id="iae-chk"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NOTES ══ -->
+<div class="view" id="view-notes">
+  <div class="ph"><div class="ph-eyebrow">Journal de progression</div><h1 class="ph-title">Notes & Réflexions</h1></div>
+  <div class="g2">
+    <div>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">Nouvelle note</div>
+        <textarea class="note-area" id="note-inp" placeholder="Ce que j'ai travaillé, ce qui a bloqué, ce que je dois revoir..."></textarea>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+          <select class="task-cat-sel" id="note-cat">
+            <option value="pm">Pol. Monétaire</option>
+            <option value="fm">Finance Marché</option>
+            <option value="mf">Marchés Fin.</option>
+            <option value="en">Anglais</option>
+            <option value="gen">Général</option>
+          </select>
+          <button class="btn sm" onclick="saveNote()">Ajouter</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Stats notes</div>
+        <div class="chart-box" style="height:160px"><canvas id="chart-notes-cat"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="card-title" style="margin-bottom:.75rem">Historique (<span id="notes-count">0</span>)</div>
+      <div id="notes-list"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const KEY = 'stratege_v5';
+let S = {
+  scores:{pm:[],fm:[],mf:[]},
+  topics:{},astChk:{},iaeChk:{},
+  activity:{},sessions:[],
+  calTasks:{},notes:[],
+  quizHistory:[]
+};
+const load=()=>{try{const d=localStorage.getItem(KEY);if(d)S={...S,...JSON.parse(d)}}catch(e){}};
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(S));updateXP();updateBadges();};
+
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const SUBJECTS={
+  pm:{name:'Politique Monétaire',color:'r',topics:[
+    {id:'pm1',n:'Rôle des banques centrales (BCE, Fed)',p:'haute',t:'r'},
+    {id:'pm2',n:'Objectifs de politique monétaire',p:'haute',t:'r'},
+    {id:'pm3',n:'Instruments : taux directeurs, QE, réserves obligatoires',p:'haute',t:'r'},
+    {id:'pm4',n:'Canaux de transmission de la politique monétaire',p:'haute',t:'r'},
+    {id:'pm5',n:'Règle de Taylor et ciblage d\'inflation',p:'moyenne',t:'o'},
+    {id:'pm6',n:'Trappe à liquidité et limites du QE',p:'moyenne',t:'o'},
+    {id:'pm7',n:'Politique de la BCE depuis 2022 (hausse des taux)',p:'haute',t:'r'},
+    {id:'pm8',n:'Politique monétaire non conventionnelle',p:'faible',t:'a'},
+  ]},
+  fm:{name:'Finance de Marché',color:'o',topics:[
+    {id:'fm1',n:'Actions, obligations, dérivés — fondamentaux',p:'haute',t:'r'},
+    {id:'fm2',n:'Calcul rentabilité et risque (variance, écart-type)',p:'haute',t:'r'},
+    {id:'fm3',n:'Bêta et CAPM',p:'haute',t:'r'},
+    {id:'fm4',n:'Valeur actuelle nette et évaluation d\'actifs',p:'haute',t:'r'},
+    {id:'fm5',n:'Gestion de portefeuille — Markowitz',p:'haute',t:'r'},
+    {id:'fm6',n:'Efficience des marchés (formes faible/semi/forte)',p:'moyenne',t:'o'},
+    {id:'fm7',n:'Finance comportementale — biais cognitifs',p:'moyenne',t:'o'},
+    {id:'fm8',n:'Options et pricing — intro Black-Scholes',p:'faible',t:'a'},
+  ]},
+  mf:{name:'Marchés Financiers',color:'g',topics:[
+    {id:'mf1',n:'Marchés primaires/secondaires, organisés/OTC',p:'haute',t:'r'},
+    {id:'mf2',n:'Acteurs : banques, fonds, market makers, AMF',p:'haute',t:'r'},
+    {id:'mf3',n:'Instruments : actions, obligations, ETF, dérivés',p:'haute',t:'r'},
+    {id:'mf4',n:'Régulation : Bâle III, MiFID II',p:'moyenne',t:'o'},
+    {id:'mf5',n:'Crise 2008 — mécanismes et leçons',p:'moyenne',t:'o'},
+    {id:'mf6',n:'Impact des taux sur marchés obligataires 2022-2024',p:'haute',t:'r'},
+    {id:'mf7',n:'Microstructure des marchés',p:'faible',t:'a'},
+  ]}
+};
+
+const TIMELINE=[
+  {m:'Juillet 2025',s:'cur',t:'Démarrage — bases des 3 matières + anglais 30min/j',d:'Fondamentaux politique monétaire, finance de marché, marchés financiers. Duolingo + BBC 30min/jour.',tags:[['L3','r'],['Anglais','a']]},
+  {m:'Août 2025',s:'cur',t:'Approfondissement + exercices corrigés',d:'Exercices Vernimmen (3/semaine), canaux de transmission, vocabulaire anglais business.',tags:[['3 exos/sem','o'],['L3','r'],['Anglais','a']]},
+  {m:'Septembre 2025',s:'pend',t:'Annales + points faibles + ouverture dossiers IAE',d:'Premières annales L3. Dossiers IAE Message à ouvrir. Anglais : compréhension écrite 40min/j.',tags:[['Annales','r'],['IAE Dossier','g']]},
+  {m:'Octobre 2025',s:'pend',t:'Révision intensive + premières annales IAE Message',d:'Partiel blanc mensuel par matière. Annales IAE format. Dossiers AST à rechercher.',tags:[['Révision','r'],['IAE Annales','g'],['AST Recherche','o']]},
+  {m:'Novembre 2025',s:'pend',t:'Simulations de partiels — 2 par matière',d:'Partiels blancs minutés. Corrections rigoureuses. Anglais réduit à 20min/j.',tags:[['Partiels blancs','r'],['Dossiers','g']]},
+  {m:'Décembre 2025',s:'pend',t:'🎯 PARTIELS L3 — Objectif 11+ dans les 3 matières',d:'Dépôt dossiers AST. TOEIC blanc en ligne pour valider le niveau anglais.',tags:[['PARTIELS','r'],['AST Dépôt','o'],['TOEIC blanc','a']]},
+  {m:'Janvier 2026',s:'pend',t:'Intensification anglais — 60 min/jour + cours S2',d:'Anglais monte à 60min/j. Premier iTalki avec prof en ligne (oral + simulation AST).',tags:[['Cours S2','g'],['Anglais 60min','a'],['iTalki','a']]},
+  {m:'Février 2026',s:'pend',t:'Simulations écrits AST + oral anglais',d:'Synthèses anglaises 3x/semaine. Simulations entretiens AST en anglais.',tags:[['AST Écrit','o'],['Oral','a']]},
+  {m:'Mars 2026',s:'pend',t:'Sprint final concours',d:'1 simulation complète IAE/semaine. Simulations oraux AST. Score cible IAE : 70%+.',tags:[['IAE 70%+','g'],['AST Oral','o']]},
+  {m:'Avril 2026',s:'pend',t:'🏆 CONCOURS — IAE Message + AST',d:'Passage test IAE Message. Épreuves AST (Audencia, Kedge, Skema, EM Lyon, EDHEC).',tags:[['IAE Message','g'],['AST','o']]},
+  {m:'Mai–Juin 2026',s:'pend',t:'🎓 PARTIELS FINAUX — Objectif 13,5+ moyenne L3',d:'Partiels fin d\'année. Entretiens écoles en parallèle. Valider la L3.',tags:[['PARTIELS FINAUX','r'],['Entretiens','g']]},
+];
+
+const EN_PHASES=[
+  {id:'ep1',c:'a',t:'Phase 1 — Reconstruction des bases',p:'Juillet → Août 2025 · 30 min/jour max',
+    rows:[['S1-2','Grammaire de base','Duolingo + BBC Elementary','Maîtriser les 3 temps'],
+          ['S3-4','Vocabulaire business','50 mots/jour sur Quizlet','200 mots mémorisés'],
+          ['S5-6','Compréhension orale','BBC Learning English + dictée','Comprendre 70% podcast lent'],
+          ['S7-8','Bilan Phase 1','Test British Council en ligne','Valider A2+ confirmé']]},
+  {id:'ep2',c:'o',t:'Phase 2 — Montée en niveau B1',p:'Septembre → Décembre 2025 · 30 min/jour max',
+    rows:[['S9-12','Vocabulaire stratégie','Glossaire conseil/stratégie — 100 termes','Utiliser les termes en phrases'],
+          ['S13-16','Compréhension écrite','1 article BBC Business/jour + résumé FR','Résumer en 3 phrases'],
+          ['S17-20','Annales IAE format','1 QCM IAE par semaine','Score QCM : 55%+']]},
+  {id:'ep3',c:'g',t:'Phase 3 — Intensification',p:'Janvier → Mars 2026 · 60 min/jour',
+    rows:[['Jan','Podcast quotidien','BBC Global News + Economist Espresso','Comprendre 80% à l\'écoute'],
+          ['Fév','Expression écrite + oral','Synthèse 150 mots 3x/sem + iTalki 1x/sem','Tenir 10 min à l\'oral'],
+          ['Mars','Simulations complètes','1 sujet IAE complet/semaine minuté','Score IAE : 65%+']]},
+  {id:'ep4',c:'r',t:'Phase 4 — Sprint concours',p:'Avril 2026',
+    rows:[['Avr S1','IAE Message','QCM + synthèse courte — B1 attendu','Score 70%+'],
+          ['Avr S2-4','Oral AST','3 simulations iTalki','10-20 min en anglais devant jury']]},
+];
+
+const CONCOURS=[
+  {n:'IAE Message — test commun IAE',school:'IAE Paris, Grenoble, Lyon, Bordeaux',date:'Avril 2026'},
+  {n:'AST Audencia',school:'Nantes · B1-B2 anglais',date:'Avril 2026'},
+  {n:'AST Kedge Business School',school:'Marseille / Bordeaux / Paris',date:'Mars-Avril 2026'},
+  {n:'AST Skema',school:'Lille / Sophia / Paris',date:'Avril 2026'},
+  {n:'AST EM Lyon',school:'Lyon · B2 anglais requis',date:'Mars-Avril 2026'},
+  {n:'AST EDHEC',school:'Lille / Paris / Nice · B2 confirmé',date:'Avril 2026'},
+];
+
+const AST_CHK=[
+  {id:'a1',t:'Rechercher les dates exactes de chaque AST',d:'EDHEC, EM Lyon, Audencia, Kedge, Skema — dates changent chaque année'},
+  {id:'a2',t:'Vérifier les conditions d\'éligibilité',d:'Certaines limitent le nombre de redoublements — vérifie avant'},
+  {id:'a3',t:'Télécharger les annales AST de chaque école',d:'Disponibles sur les sites officiels ou bureaux des admissions'},
+  {id:'a4',t:'Rédiger la lettre de motivation (projet pro précis)',d:'Conseil en stratégie Tier 2/3 — argumente pourquoi cette école'},
+  {id:'a5',t:'Préparer le CV (1 page, projet pro clair)',d:'Titre : "Étudiant L3 Finance | Futur consultant en stratégie"'},
+  {id:'a6',t:'Préparer la réponse sur le redoublement',d:'"Choix de rigueur pour des bases solides" — s\'entraîner à l\'oral'},
+  {id:'a7',t:'Simuler l\'entretien de motivation (5 séances)',d:'Avec un ami, un prof ou via iTalki. Note les questions pièges'},
+  {id:'a8',t:'TOEIC blanc en décembre (cible : 500+)',d:'Nécessaire pour documenter le niveau anglais dans les dossiers'},
+];
+
+const IAE_CHK=[
+  {id:'i1',t:'S\'inscrire sur le site officiel IAE Message',d:'iaeMessage.fr — inscription ouvre généralement jan/fév'},
+  {id:'i2',t:'Choisir les IAE cibles (3 minimum)',d:'IAE Paris Sorbonne, Grenoble, Lyon, Bordeaux, Nantes'},
+  {id:'i3',t:'Télécharger et travailler les annales IAE Message',d:'Compréhension texte, logique, vocabulaire gestion, anglais, synthèse'},
+  {id:'i4',t:'2 sujets complets IAE/semaine à partir de janvier',d:'En conditions réelles — minuté, sans aide. Corriger ensuite rigoureusement'},
+  {id:'i5',t:'Préparer le dossier de candidature',d:'Relevés L3 (vise 13,5+), lettre de motivation, CV'},
+  {id:'i6',t:'Vérifier spécificités de chaque IAE ciblé',d:'Certains ont des entretiens supplémentaires — renseigne-toi'},
+];
+
+// ══════════════════════════════════════════
+// QUIZ QUESTIONS
+// ══════════════════════════════════════════
+const QUESTIONS={
+  pm:[
+    {q:'Quel est le principal objectif de la BCE ?',opts:['Maximiser la croissance du PIB','Maintenir la stabilité des prix (inflation ~2%)','Assurer le plein emploi','Stabiliser le taux de change de l\'euro'],a:1,e:'La BCE a pour mandat principal la stabilité des prix, avec un objectif d\'inflation symétrique de 2% à moyen terme.'},
+    {q:'Qu\'est-ce que le taux directeur ?',opts:['Le taux auquel les banques se prêtent entre elles sur le marché interbancaire','Le taux que la banque centrale fixe pour ses opérations avec les banques commerciales','Le taux d\'inflation observé','Le taux de croissance du PIB cible'],a:1,e:'Le taux directeur est fixé par la banque centrale pour ses opérations de refinancement. Il influence ensuite l\'ensemble des taux de l\'économie.'},
+    {q:'La politique monétaire expansionniste consiste à…',opts:['Augmenter les taux d\'intérêt pour freiner l\'inflation','Réduire les taux d\'intérêt et/ou augmenter la masse monétaire','Réduire la masse monétaire en circulation','Vendre des obligations sur le marché'],a:1,e:'Une politique expansionniste vise à stimuler l\'économie en abaissant le coût du crédit, ce qui encourage l\'investissement et la consommation.'},
+    {q:'Le Quantitative Easing (QE) consiste en…',opts:['Une hausse des réserves obligatoires des banques','Des achats massifs d\'actifs financiers par la banque centrale','Une réduction du taux d\'imposition','Une augmentation des dépenses publiques'],a:1,e:'Le QE est un outil non conventionnel par lequel la banque centrale achète des actifs (obligations souveraines, etc.) pour injecter des liquidités et baisser les taux longs.'},
+    {q:'La trappe à liquidité désigne une situation où…',opts:['Les banques manquent de liquidités','La politique monétaire expansionniste perd son efficacité car les taux ne peuvent plus baisser','Les marchés financiers sont illiquides','Les ménages thésaurisent leur épargne'],a:1,e:'Dans une trappe à liquidité, les taux sont proches de zéro et les agents préfèrent détenir de la monnaie plutôt que d\'investir. La politique monétaire classique est inefficace.'},
+    {q:'Le canal du crédit dans la transmission monétaire signifie que…',opts:['Les variations de taux modifient directement les revenus des ménages','Une baisse des taux facilite l\'accès au crédit et stimule investissement et consommation','Les changes sont influencés par les taux d\'intérêt','La politique monétaire agit via le prix des actions'],a:1,e:'Le canal du crédit explique comment les variations de taux directeurs se transmettent à l\'offre et au coût du crédit bancaire, influençant in fine l\'activité réelle.'},
+  ],
+  fm:[
+    {q:'Le bêta d\'une action mesure…',opts:['Sa rentabilité absolue','Sa sensibilité aux mouvements du marché','Son risque spécifique','Son niveau de dividendes'],a:1,e:'Le bêta mesure la volatilité d\'un actif par rapport au marché. Bêta > 1 = plus volatile que le marché, bêta < 1 = moins volatile.'},
+    {q:'Selon le CAPM, la rentabilité attendue d\'un actif est égale à…',opts:['Taux sans risque + bêta × (rentabilité marché − taux sans risque)','Rentabilité marché × bêta','Dividende / Prix de l\'action','Taux sans risque − prime de risque'],a:0,e:'Le CAPM (Capital Asset Pricing Model) stipule que E(Ri) = Rf + βi × (E(Rm) − Rf). La prime de risque est proportionnelle au bêta de l\'actif.'},
+    {q:'La frontière efficiente de Markowitz représente…',opts:['L\'ensemble des portefeuilles avec le rendement maximal pour un risque donné','L\'ensemble des actions à faible volatilité','La limite légale de diversification d\'un fonds','Le portefeuille de marché uniquement'],a:0,e:'La frontière efficiente est la courbe des portefeuilles optimaux : pour un niveau de risque donné, aucun autre portefeuille ne peut offrir une rentabilité supérieure.'},
+    {q:'Un marché est dit efficient au sens fort si…',opts:['Les prix reflètent uniquement l\'historique des cours','Les prix reflètent toutes les informations publiques','Les prix reflètent toutes les informations, publiques et privées','Les prix ne varient pas à court terme'],a:2,e:'L\'efficience forte suppose que même les informations privées (insider information) sont déjà intégrées dans les prix, ce qui est une forme théorique rarement vérifiée en pratique.'},
+    {q:'L\'aversion aux pertes en finance comportementale signifie que…',opts:['Les investisseurs fuient le risque systématiquement','Une perte d\'un certain montant est ressentie comme plus importante qu\'un gain équivalent','Les investisseurs préfèrent les obligations aux actions','Les marchés ne peuvent pas baisser sur longue période'],a:1,e:'Kahneman et Tversky ont montré que psychologiquement, les pertes ont environ 2x plus d\'impact que les gains de même montant. Ceci biais les décisions d\'investissement.'},
+    {q:'La VAN (Valeur Actuelle Nette) est positive si…',opts:['Les flux futurs actualisés sont inférieurs à l\'investissement initial','Les flux futurs actualisés sont supérieurs à l\'investissement initial','Le taux d\'actualisation est égal au taux sans risque','Le projet a un bêta inférieur à 1'],a:1,e:'VAN = Σ (flux / (1+r)^t) − Investissement initial. Si VAN > 0, le projet crée de la valeur. C\'est le critère central de la décision d\'investissement.'},
+  ],
+  mf:[
+    {q:'Un marché secondaire est un marché où…',opts:['Les nouvelles actions sont émises pour la première fois','Les titres déjà émis sont échangés entre investisseurs','Seules les obligations d\'État sont négociées','Les produits dérivés sont créés'],a:1,e:'Le marché primaire est celui des nouvelles émissions. Le marché secondaire permet la revente des titres déjà en circulation (ex : bourse de Paris).'},
+    {q:'Bâle III est un ensemble de réglementations concernant…',opts:['Les marchés boursiers internationaux','Les fonds de pension','Les banques — exigences de capital et de liquidité','Les hedge funds uniquement'],a:2,e:'Bâle III, mis en place après la crise 2008, renforce les exigences en fonds propres des banques, introduit des ratios de liquidité (LCR, NSFR) et un ratio de levier.'},
+    {q:'Un ETF (Exchange Traded Fund) est…',opts:['Un fonds non côté géré activement','Un produit dérivé sur matières premières','Un fonds indiciel côté en bourse, répliquant un indice','Une obligation à taux variable'],a:2,e:'Un ETF réplique la performance d\'un indice (CAC 40, S&P 500...), se négocie en bourse comme une action, et offre une diversification à faible coût.'},
+    {q:'Le rôle de l\'AMF en France est de…',opts:['Fixer les taux d\'intérêt','Réguler et surveiller les marchés financiers français','Gérer les réserves de change','Accorder des crédits aux banques'],a:1,e:'L\'AMF (Autorité des Marchés Financiers) protège l\'épargne investie en produits financiers, veille à l\'information des investisseurs et au bon fonctionnement des marchés.'},
+    {q:'La principale cause de la crise de 2008 était…',opts:['Une hausse brutale des matières premières','La faillite de plusieurs États européens','L\'effondrement du marché immobilier américain et la titrisation des subprimes','Une politique monétaire trop restrictive'],a:2,e:'La crise de 2008 s\'est déclenchée par l\'effondrement du marché immobilier US, amplifié par la titrisation des crédits subprimes en produits complexes (CDO), propagée via les bilans bancaires.'},
+    {q:'MiFID II (2018) a principalement introduit…',opts:['Les réserves obligatoires des banques','Plus de transparence sur les coûts et l\'exécution des ordres','La fusion des bourses européennes','L\'interdiction des ventes à découvert'],a:1,e:'MiFID II renforce la transparence des marchés : obligation de rapporter les transactions, publication des coûts, meilleure exécution des ordres, encadrement de la recherche financière.'},
+  ]
+};
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+let chartInstances={};
+function go(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  const btn=[...document.querySelectorAll('.nav-btn')].find(b=>b.getAttribute('onclick')?.includes("'"+id+"'"));
+  if(btn)btn.classList.add('active');
+  if(window.innerWidth<=900)toggleSb(false);
+  renders[id]&&renders[id]();
+}
+
+const renders={
+  dash:renderDash,
+  planning:renderPlanning,
+  cal:renderCal,
+  pm:()=>renderSubject('pm'),
+  fm:()=>renderSubject('fm'),
+  mf:()=>renderSubject('mf'),
+  en:renderEn,
+  conc:renderConc,
+  notes:renderNotes,
+  quiz:renderQuizSetup,
+  timer:renderTimer,
+};
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDash(){
+  const now=new Date();
+  document.getElementById('dash-date').textContent=now.toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  // Days to dec
+  const dec=new Date(2025,11,1);
+  const diff=Math.max(0,Math.ceil((dec-now)/(1000*60*60*24)));
+  document.getElementById('days-to-dec').textContent=diff;
+  // Scores
+  ['pm','fm','mf'].forEach(k=>{
+    const arr=S.scores[k];
+    const v=arr&&arr.length?arr[arr.length-1].v:null;
+    const el=document.getElementById('ds-'+k);
+    if(el)el.textContent=v!==null?v+'/20':'—';
+  });
+  // Sessions today
+  const today=now.toISOString().slice(0,10);
+  const todaySes=S.sessions.filter(s=>s.date===today);
+  document.getElementById('ds-ses').textContent=todaySes.length;
+  // Progress
+  renderDashProgress();
+  // Charts
+  renderNotesChart();
+  renderTimeChart();
+  renderHeatmap();
+}
+
+function renderDashProgress(){
+  const el=document.getElementById('dash-prog');
+  if(!el)return;
+  el.innerHTML=['pm','fm','mf'].map(k=>{
+    const s=SUBJECTS[k];
+    const done=s.topics.filter(t=>S.topics[t.id]).length;
+    const pct=Math.round(done/s.topics.length*100);
+    const col=k==='pm'?'r':k==='fm'?'o':'g';
+    return `<div class="prog-wrap">
+      <div class="prog-hd"><span class="prog-name">${s.name}</span><span class="prog-pct">${done}/${s.topics.length} · ${pct}%</span></div>
+      <div class="prog-track"><div class="prog-fill pf-${col}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderNotesChart(){
+  const ctx=document.getElementById('chart-notes');
+  if(!ctx)return;
+  if(chartInstances['notes'])chartInstances['notes'].destroy();
+  const labels=['pm','fm','mf'];
+  const names=['Pol. Mon.','Finance','Marchés'];
+  const colors=['rgba(239,68,68,.7)','rgba(245,158,11,.7)','rgba(16,217,160,.7)'];
+  const data=labels.map(k=>{
+    const arr=S.scores[k];
+    return arr&&arr.length?arr[arr.length-1].v:null;
+  });
+  chartInstances['notes']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:names,datasets:[{data,backgroundColor:colors,borderRadius:8,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:20,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7494',font:{family:'JetBrains Mono',size:10}},
+        border:{color:'rgba(255,255,255,.04)'}},
+        x:{grid:{display:false},ticks:{color:'#6b7494',font:{family:'JetBrains Mono',size:10}},border:{display:false}}
+      }}
+  });
+}
+
+function renderTimeChart(){
+  const ctx=document.getElementById('chart-time');
+  if(!ctx)return;
+  if(chartInstances['time'])chartInstances['time'].destroy();
+  const cats={pm:0,fm:0,mf:0,en:0,gen:0};
+  S.sessions.forEach(s=>{cats[s.subject]=(cats[s.subject]||0)+s.duration});
+  const labels=['Pol.Mon.','Finance','Marchés','Anglais','Général'];
+  const vals=[cats.pm,cats.fm,cats.mf,cats.en,cats.gen].map(v=>Math.round(v/60));
+  chartInstances['time']=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data:vals,backgroundColor:['rgba(239,68,68,.7)','rgba(245,158,11,.7)','rgba(16,217,160,.7)','rgba(108,99,255,.7)','rgba(129,140,248,.7)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#6b7494',font:{family:'JetBrains Mono',size:10},padding:12,boxWidth:10}}}}
+  });
+}
+
+function renderHeatmap(){
+  const el=document.getElementById('heatmap');
+  if(!el)return;
+  let h='';
+  for(let i=90;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=d.toISOString().slice(0,10);
+    const lv=Math.min(S.activity[k]||0,4);
+    h+=`<div class="hm-day l${lv}" onclick="logToday('${k}')" title="${k}"></div>`;
+  }
+  el.innerHTML=h;
+}
+
+// ══════════════════════════════════════════
+// PLANNING
+// ══════════════════════════════════════════
+function renderPlanning(){
+  const el=document.getElementById('tl-content');
+  el.innerHTML=TIMELINE.map(item=>`
+    <div class="tl-item">
+      <div class="tl-dot ${item.s}"></div>
+      <div class="tl-month">${item.m}</div>
+      <div class="tl-title">${item.t}</div>
+      <div class="tl-desc">${item.d}</div>
+      <div class="tl-tags">${item.tags.map(([t,c])=>`<span class="tag ${c}">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calSelected=null;
+function renderCal(){
+  const first=new Date(calYear,calMonth,1);
+  const last=new Date(calYear,calMonth+1,0);
+  const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-month-label').textContent=`${months[calMonth]} ${calYear}`;
+  const today=new Date();
+  const todayStr=today.toISOString().slice(0,10);
+  let h='<div class="cal-dow">L</div><div class="cal-dow">M</div><div class="cal-dow">M</div><div class="cal-dow">J</div><div class="cal-dow">V</div><div class="cal-dow">S</div><div class="cal-dow">D</div>';
+  let startDay=(first.getDay()+6)%7;
+  for(let i=0;i<startDay;i++){
+    const d=new Date(calYear,calMonth,1-startDay+i);
+    h+=`<div class="cal-day other-month">${d.getDate()}</div>`;
+  }
+  for(let d=1;d<=last.getDate();d++){
+    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=dateStr===todayStr;
+    const hasSes=S.sessions.some(s=>s.date===dateStr);
+    const hasTask=S.calTasks[dateStr]&&S.calTasks[dateStr].length>0;
+    const isSel=calSelected===dateStr;
+    const cls=`cal-day${isToday?' today':''}${hasSes?' has-session':''}${hasTask?' has-task':''}${isSel?' selected':''}`;
+    h+=`<div class="${cls}" onclick="selectDay('${dateStr}')">${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=h;
+  if(calSelected)showDayDetail(calSelected);
+}
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+function selectDay(ds){calSelected=ds;renderCal();showDayDetail(ds);}
+function showDayDetail(ds){
+  const label=document.getElementById('cal-selected-label');
+  const d=new Date(ds+'T12:00:00');
+  label.textContent=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const tasks=S.calTasks[ds]||[];
+  const ses=S.sessions.filter(s=>s.date===ds);
+  const catC={pm:'r',fm:'o',mf:'g',en:'a',gen:'p'};
+  const catN={pm:'Pol.Mon.',fm:'Finance',mf:'Marchés',en:'Anglais',gen:'Général'};
+  let h='';
+  if(ses.length)h+=ses.map(s=>`<div class="cal-task-item"><div class="session-dot ${s.subject}"></div><span style="flex:1">${catN[s.subject]} · ${Math.round(s.duration/60)} min</span><span class="tag g">✓ session</span></div>`).join('');
+  if(tasks.length)h+=tasks.map((tk,i)=>`<div class="cal-task-item"><div class="session-dot ${tk.cat}"></div><span style="flex:1">${tk.text}</span><span class="tag ${catC[tk.cat]}">${catN[tk.cat]}</span><button onclick="removeTask('${ds}',${i})" style="background:none;border:none;color:var(--mu);cursor:pointer;font-size:.75rem">✕</button></div>`).join('');
+  if(!h)h='<p style="font-size:.8rem;color:var(--mu)">Aucune session ni tâche ce jour.</p>';
+  document.getElementById('cal-detail').innerHTML=h;
+}
+function addTask(){
+  const txt=document.getElementById('task-inp').value.trim();
+  if(!txt||!calSelected)return;
+  const cat=document.getElementById('task-cat').value;
+  if(!S.calTasks[calSelected])S.calTasks[calSelected]=[];
+  S.calTasks[calSelected].push({text:txt,cat});
+  document.getElementById('task-inp').value='';
+  save();renderCal();notify('✓ Tâche ajoutée','ok');
+}
+function removeTask(ds,i){S.calTasks[ds].splice(i,1);save();renderCal();}
+
+// ══════════════════════════════════════════
+// SUBJECTS
+// ══════════════════════════════════════════
+function renderSubject(k){
+  const s=SUBJECTS[k];
+  const done=s.topics.filter(t=>S.topics[t.id]).length;
+  const el=document.getElementById('topics-'+k);
+  if(el)el.innerHTML=s.topics.map(tp=>{
+    const ck=!!S.topics[tp.id];
+    return `<div class="topic-item" onclick="toggleTopic('${tp.id}','${k}')">
+      <div class="topic-ck ${ck?'done':''}">${ck?'✓':''}</div>
+      <div class="topic-name ${ck?'done':''}">${tp.n}</div>
+      <span class="tag ${tp.t}">${tp.p}</span>
+    </div>`;
+  }).join('');
+  const total=s.topics.length;
+  const chapEl=document.getElementById(k+'-chap');
+  if(chapEl)chapEl.textContent=`${done}/${total}`;
+  // Score display
+  const arr=S.scores[k];
+  const v=arr&&arr.length?arr[arr.length-1].v:null;
+  const vEl=document.getElementById('note-'+k+'-v');
+  if(vEl)vEl.textContent=v!==null?v+'/20':'—';
+  const inp=document.getElementById('inp-'+k);
+  if(inp&&v!==null)inp.value=v;
+  // Chart
+  renderSubjectChart(k);
+}
+
+function renderSubjectChart(k){
+  const ctx=document.getElementById('chart-'+k);
+  if(!ctx)return;
+  if(chartInstances[k])chartInstances[k].destroy();
+  const arr=S.scores[k]||[];
+  const labels=arr.map(s=>s.date.slice(5));
+  const data=arr.map(s=>s.v);
+  const cols={pm:'rgb(239,68,68)',fm:'rgb(245,158,11)',mf:'rgb(16,217,160)'};
+  const col=cols[k];
+  chartInstances[k]=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data,borderColor:col,backgroundColor:col.replace('rgb','rgba').replace(')',',0.08)'),
+      borderWidth:2,pointRadius:4,pointBackgroundColor:col,tension:.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:20,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7494',font:{family:'JetBrains Mono',size:10}},border:{color:'rgba(255,255,255,.04)'}},
+        x:{grid:{display:false},ticks:{color:'#6b7494',font:{family:'JetBrains Mono',size:10}},border:{display:false}}
+      }}
+  });
+}
+
+function saveScore(k){
+  const v=parseFloat(document.getElementById('inp-'+k).value);
+  if(isNaN(v)||v<0||v>20)return;
+  const date=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  if(!S.scores[k])S.scores[k]=[];
+  S.scores[k].push({v,date});
+  save();
+  renderSubject(k);
+  renderDash();
+  logActivityToday();
+  notify(`✓ Note ${SUBJECTS[k].name} enregistrée : ${v}/20`,'ok');
+  addXP(20);
+}
+
+function toggleTopic(id,k){
+  S.topics[id]=!S.topics[id];
+  save();renderSubject(k);renderDash();
+  logActivityToday();
+  if(S.topics[id])addXP(10);
+  notify(S.topics[id]?'✓ Chapitre validé +10 XP':'Chapitre retiré','ok');
+}
+
+// ══════════════════════════════════════════
+// ENGLISH
+// ══════════════════════════════════════════
+function renderEn(){
+  const el=document.getElementById('en-phases');
+  if(!el)return;
+  el.innerHTML=EN_PHASES.map(ph=>`
+    <div class="ep-block">
+      <div class="ep-hd ${ph.c}" onclick="toggleEp('${ph.id}')">
+        <div><div class="ep-title">${ph.t}</div><div class="ep-period">${ph.p}</div></div>
+        <span class="ep-arr" id="arr-${ph.id}">▼</span>
+      </div>
+      <div class="ep-body" id="body-${ph.id}">
+        <table class="wk-table"><thead><tr><th>Sem.</th><th>Focus</th><th>Activités</th><th>Objectif</th></tr></thead>
+        <tbody>${ph.rows.map(r=>`<tr><td style="font-family:var(--fm);color:var(--a);font-size:.7rem">${r[0]}</td><td style="font-weight:500">${r[1]}</td><td style="color:var(--mu)">${r[2]}</td><td style="color:var(--g);font-family:var(--fm);font-size:.7rem">${r[3]}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`).join('');
+}
+function toggleEp(id){
+  document.getElementById('body-'+id).classList.toggle('open');
+  document.getElementById('arr-'+id).classList.toggle('open');
+}
+
+// ══════════════════════════════════════════
+// QUIZ
+// ══════════════════════════════════════════
+let quizState={qs:[],cur:0,score:0,subjects:[],difficulty:'medium'};
+
+function renderQuizSetup(){
+  document.getElementById('quiz-setup').style.display='block';
+  document.getElementById('quiz-active').style.display='none';
+  document.getElementById('quiz-result').style.display='none';
+  // History
+  const el=document.getElementById('quiz-history');
+  if(!S.quizHistory.length){el.innerHTML='<p style="font-size:.8rem;color:var(--mu)">Aucun quiz complété. Lance ton premier quiz !</p>';return;}
+  el.innerHTML=[...S.quizHistory].reverse().slice(0,5).map(h=>`
+    <div class="score-history-item">
+      <span class="tag ${h.score>=80?'g':h.score>=60?'o':'r'}">${h.score}%</span>
+      <span style="flex:1;font-size:.8rem">${h.subjects.join(', ')}</span>
+      <span style="font-family:var(--fm);font-size:.7rem;color:var(--mu)">${h.date}</span>
+    </div>`).join('');
+  // Setup listeners
+  document.querySelectorAll('.quiz-subject-btn').forEach(btn=>{
+    btn.onclick=function(){this.classList.toggle('sel')};
+  });
+  document.querySelectorAll('.diff-btn').forEach(btn=>{
+    btn.onclick=function(){
+      document.querySelectorAll('.diff-btn').forEach(b=>{b.classList.remove('sel','easy','medium','hard')});
+      this.classList.add('sel',this.dataset.d);
+      quizState.difficulty=this.dataset.d;
+    };
+  });
+}
+
+function startQuiz(){
+  const selSubjs=[...document.querySelectorAll('.quiz-subject-btn.sel')].map(b=>b.dataset.s);
+  if(!selSubjs.length){notify('Sélectionne au moins une matière','warn');return;}
+  let pool=[];
+  selSubjs.forEach(s=>{pool=[...pool,...QUESTIONS[s]];});
+  // Shuffle
+  pool=pool.sort(()=>Math.random()-.5).slice(0,Math.min(10,pool.length));
+  quizState={qs:pool,cur:0,score:0,subjects:selSubjs,difficulty:quizState.difficulty};
+  document.getElementById('quiz-setup').style.display='none';
+  document.getElementById('quiz-result').style.display='none';
+  document.getElementById('quiz-active').style.display='block';
+  showQ();
+}
+
+function showQ(){
+  const q=quizState.qs[quizState.cur];
+  const tot=quizState.qs.length;
+  document.getElementById('qz-num').textContent=`${quizState.cur+1}/${tot}`;
+  document.getElementById('qz-prog').style.width=`${((quizState.cur+1)/tot)*100}%`;
+  document.getElementById('qz-score').textContent=quizState.score;
+  document.getElementById('qz-cat').textContent=
+    q===quizState.qs.find(qq=>QUESTIONS.pm.includes(qq))?'Politique Monétaire':
+    QUESTIONS.fm.includes(q)?'Finance de Marché':'Marchés Financiers';
+  document.getElementById('qz-text').textContent=q.q;
+  document.getElementById('qz-explain').style.display='none';
+  document.getElementById('qz-next').style.display='none';
+  const optsEl=document.getElementById('qz-opts');
+  optsEl.innerHTML=q.opts.map((o,i)=>`<button class="quiz-opt" onclick="answerQ(${i})">${o}</button>`).join('');
+}
+
+function answerQ(idx){
+  const q=quizState.qs[quizState.cur];
+  const btns=document.querySelectorAll('.quiz-opt');
+  btns.forEach((b,i)=>{b.disabled=true;if(i===q.a)b.classList.add('correct');});
+  if(idx===q.a){quizState.score++;btns[idx].classList.add('correct');}
+  else{btns[idx].classList.add('wrong');}
+  document.getElementById('qz-explain').textContent=q.e;
+  document.getElementById('qz-explain').style.display='block';
+  document.getElementById('qz-next').style.display='block';
+  document.getElementById('qz-score').textContent=quizState.score;
+}
+
+function nextQ(){
+  quizState.cur++;
+  if(quizState.cur>=quizState.qs.length)finishQuiz();
+  else showQ();
+}
+
+function finishQuiz(){
+  document.getElementById('quiz-active').style.display='none';
+  document.getElementById('quiz-result').style.display='block';
+  const pct=Math.round(quizState.score/quizState.qs.length*100);
+  document.getElementById('qr-score').textContent=`${pct}%`;
+  const catN={pm:'Politique Monétaire',fm:'Finance Marché',mf:'Marchés Fin.'};
+  document.getElementById('qr-label').textContent=pct>=80?'Excellent ! Continue comme ça 🎯':pct>=60?'Bien ! Quelques points à retravailler 📚':'À retravailler — revois les chapitres concernés 💪';
+  document.getElementById('qr-detail').textContent=`${quizState.score}/${quizState.qs.length} bonnes réponses · Matières : ${quizState.subjects.map(s=>catN[s]).join(', ')}`;
+  const date=new Date().toLocaleDateString('fr-FR');
+  S.quizHistory.push({score:pct,subjects:quizState.subjects.map(s=>catN[s]),date});
+  save();addXP(pct/2);logActivityToday();
+  notify(`Quiz terminé : ${pct}%`,'ok');
+}
+
+function endQuiz(){
+  document.getElementById('quiz-setup').style.display='block';
+  document.getElementById('quiz-active').style.display='none';
+  document.getElementById('quiz-result').style.display='none';
+  renderQuizSetup();
+}
+
+// ══════════════════════════════════════════
+// TIMER POMODORO
+// ══════════════════════════════════════════
+let timerState={running:false,remaining:25*60,total:25*60,interval:null,mode:'focus'};
+const CIRCUMFERENCE=2*Math.PI*98;
+
+function renderTimer(){
+  document.getElementById('timer-duration').addEventListener('change',function(){
+    if(!timerState.running){
+      timerState.total=parseInt(this.value)*60;
+      timerState.remaining=timerState.total;
+      updateTimerDisplay();
+    }
+  });
+  updateTimerDisplay();
+  renderSessionLog();
+}
+
+function toggleTimer(){
+  if(timerState.running){pauseTimer();}else{startTimer();}
+}
+
+function startTimer(){
+  timerState.running=true;
+  document.getElementById('timer-btn').textContent='⏸ Pause';
+  timerState.interval=setInterval(tickTimer,1000);
+}
+
+function pauseTimer(){
+  timerState.running=false;
+  document.getElementById('timer-btn').textContent='▶ Reprendre';
+  clearInterval(timerState.interval);
+}
+
+function resetTimer(){
+  clearInterval(timerState.interval);
+  timerState.running=false;
+  timerState.total=parseInt(document.getElementById('timer-duration').value)*60;
+  timerState.remaining=timerState.total;
+  document.getElementById('timer-btn').textContent='▶ Démarrer';
+  updateTimerDisplay();
+}
+
+function tickTimer(){
+  timerState.remaining--;
+  updateTimerDisplay();
+  if(timerState.remaining<=0){
+    clearInterval(timerState.interval);
+    timerState.running=false;
+    document.getElementById('timer-btn').textContent='▶ Démarrer';
+    completeSession();
+  }
+}
+
+function updateTimerDisplay(){
+  const m=Math.floor(timerState.remaining/60);
+  const s=timerState.remaining%60;
+  document.getElementById('timer-display').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const pct=timerState.remaining/timerState.total;
+  const offset=CIRCUMFERENCE*(1-pct);
+  document.getElementById('timer-ring-fg').style.strokeDashoffset=offset;
+}
+
+function completeSession(){
+  const subj=document.getElementById('timer-subject').value;
+  const dur=timerState.total;
+  const today=new Date().toISOString().slice(0,10);
+  const time=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  S.sessions.push({subject:subj,duration:dur,date:today,time});
+  save();
+  logActivityToday();
+  addXP(15);
+  notify(`🎉 Session terminée ! +15 XP · ${Math.round(dur/60)} min de ${['pm','fm','mf','en','gen'].includes(subj)?{pm:'Pol.Mon.',fm:'Finance',mf:'Marchés',en:'Anglais',gen:'Général'}[subj]:'travail'}`,'ok');
+  resetTimer();
+  renderSessionLog();
+  updateSessionStats();
+}
+
+function renderSessionLog(){
+  const today=new Date().toISOString().slice(0,10);
+  const todaySes=S.sessions.filter(s=>s.date===today);
+  const catN={pm:'Politique Monétaire',fm:'Finance de Marché',mf:'Marchés Financiers',en:'Anglais',gen:'Général'};
+  const el=document.getElementById('session-log');
+  if(!el)return;
+  if(!todaySes.length){el.innerHTML='<p style="font-size:.8rem;color:var(--mu)">Aucune session aujourd\'hui. Lance la première !</p>';return;}
+  el.innerHTML=todaySes.map(s=>`
+    <div class="session-item">
+      <div class="session-dot ${s.subject}"></div>
+      <span style="flex:1">${catN[s.subject]}</span>
+      <span style="font-family:var(--fm);font-size:.7rem;color:var(--mu)">${Math.round(s.duration/60)} min · ${s.time}</span>
+    </div>`).join('');
+  updateSessionStats();
+}
+
+function updateSessionStats(){
+  const today=new Date().toISOString().slice(0,10);
+  const todaySes=S.sessions.filter(s=>s.date===today);
+  const el1=document.getElementById('ses-count');
+  const el2=document.getElementById('ses-time');
+  if(el1)el1.textContent=todaySes.length;
+  if(el2){
+    const totalMin=todaySes.reduce((a,s)=>a+Math.round(s.duration/60),0);
+    el2.textContent=totalMin>=60?`${Math.floor(totalMin/60)}h${totalMin%60?totalMin%60+'m':''}`:`${totalMin}m`;
+  }
+}
+
+// ══════════════════════════════════════════
+// CONCOURS
+// ══════════════════════════════════════════
+function renderConc(){
+  const el=document.getElementById('conc-list');
+  if(el)el.innerHTML=CONCOURS.map(c=>`
+    <div class="conc-card">
+      <div class="conc-info">
+        <div class="conc-name">${c.n}</div>
+        <div class="conc-meta">${c.school}</div>
+      </div>
+      <div class="conc-date">${c.date}</div>
+    </div>`).join('');
+  renderChk('ast-chk',AST_CHK,'ast');
+  renderChk('iae-chk',IAE_CHK,'iae');
+}
+
+function renderChk(elId,items,prefix){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  el.innerHTML=items.map(item=>{
+    const done=!!(prefix==='ast'?S.astChk[item.id]:S.iaeChk[item.id]);
+    return `<div class="chk-item" onclick="toggleChk('${item.id}','${prefix}')">
+      <div class="chk-box ${done?'done':''}">${done?'✓':''}</div>
+      <div><div class="chk-title ${done?'done':''}">${item.t}</div><div class="chk-desc">${item.d}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function toggleChk(id,prefix){
+  if(prefix==='ast')S.astChk[id]=!S.astChk[id];
+  else S.iaeChk[id]=!S.iaeChk[id];
+  save();renderConc();logActivityToday();
+  const done=prefix==='ast'?S.astChk[id]:S.iaeChk[id];
+  if(done)addXP(15);
+  notify(done?'✓ Étape validée +15 XP':'Étape retirée','ok');
+}
+
+// ══════════════════════════════════════════
+// NOTES
+// ══════════════════════════════════════════
+function renderNotes(){
+  const catC={pm:'r',fm:'o',mf:'g',en:'a',gen:'p'};
+  const catN={pm:'Pol. Monétaire',fm:'Finance Marché',mf:'Marchés Fin.',en:'Anglais',gen:'Général'};
+  const el=document.getElementById('notes-list');
+  document.getElementById('notes-count').textContent=S.notes.length;
+  if(!S.notes.length){el.innerHTML='<p style="font-size:.8rem;color:var(--mu)">Aucune note. Commence à écrire tes réflexions !</p>';return;}
+  el.innerHTML=[...S.notes].reverse().map((n,ri)=>`
+    <div class="note-item ${n.cat}">
+      <div class="note-meta">
+        <span class="tag ${catC[n.cat]}">${catN[n.cat]}</span>
+        ${n.date}
+        <button onclick="delNote(${S.notes.length-1-ri})" style="margin-left:auto;background:none;border:none;color:var(--mu);cursor:pointer;font-size:.75rem">✕</button>
+      </div>
+      ${n.text}
+    </div>`).join('');
+  renderNotesCatChart();
+}
+
+function renderNotesCatChart(){
+  const ctx=document.getElementById('chart-notes-cat');
+  if(!ctx)return;
+  if(chartInstances['notes-cat'])chartInstances['notes-cat'].destroy();
+  const cats={pm:0,fm:0,mf:0,en:0,gen:0};
+  S.notes.forEach(n=>{cats[n.cat]=(cats[n.cat]||0)+1});
+  chartInstances['notes-cat']=new Chart(ctx,{
+    type:'polarArea',
+    data:{labels:['Pol.Mon.','Finance','Marchés','Anglais','Général'],
+      datasets:[{data:[cats.pm,cats.fm,cats.mf,cats.en,cats.gen],
+        backgroundColor:['rgba(239,68,68,.6)','rgba(245,158,11,.6)','rgba(16,217,160,.6)','rgba(108,99,255,.6)','rgba(129,140,248,.6)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#6b7494',font:{family:'JetBrains Mono',size:9},padding:8,boxWidth:8}}},scales:{r:{grid:{color:'rgba(255,255,255,.04)'},ticks:{display:false}}}}
+  });
+}
+
+function saveNote(){
+  const txt=document.getElementById('note-inp').value.trim();
+  if(!txt)return;
+  const cat=document.getElementById('note-cat').value;
+  const date=new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  S.notes.push({text:txt,cat,date});
+  document.getElementById('note-inp').value='';
+  save();renderNotes();logActivityToday();addXP(5);
+  notify('✓ Note ajoutée +5 XP','ok');
+}
+
+function delNote(i){S.notes.splice(i,1);save();renderNotes();}
+
+// ══════════════════════════════════════════
+// XP & STREAK
+// ══════════════════════════════════════════
+let xp=0;
+function addXP(n){
+  xp=Math.min(1000,xp+n);
+  updateXPDisplay();
+}
+function updateXPDisplay(){
+  document.getElementById('xp-val').textContent=`${Math.round(xp)} XP`;
+  document.getElementById('xp-fill').style.width=`${(xp%100)}%`;
+}
+function updateXP(){
+  // Recalculate from state
+  const topics=Object.values(S.topics).filter(Boolean).length;
+  const checks=Object.values(S.astChk).filter(Boolean).length+Object.values(S.iaeChk).filter(Boolean).length;
+  const scores=Object.values(S.scores).reduce((a,arr)=>a+arr.length,0);
+  const sessions=S.sessions.length;
+  const notes=S.notes.length;
+  xp=Math.min(9999,topics*10+checks*15+scores*20+sessions*15+notes*5);
+  updateXPDisplay();
+}
+function updateBadges(){
+  ['pm','fm','mf'].forEach(k=>{
+    const s=SUBJECTS[k];
+    const done=s.topics.filter(t=>S.topics[t.id]).length;
+    const pct=Math.round(done/s.topics.length*100);
+    const el=document.getElementById('nb-'+k);
+    if(el)el.textContent=pct+'%';
+  });
+}
+function updateStreak(){
+  const today=new Date().toISOString().slice(0,10);
+  let streak=0;
+  const d=new Date();
+  while(true){
+    const k=d.toISOString().slice(0,10);
+    if(S.activity[k]){streak++;d.setDate(d.getDate()-1);}
+    else break;
+    if(streak>365)break;
+  }
+  document.getElementById('streak-num').textContent=streak;
+  document.getElementById('streak-sub').textContent=streak===0?'Commence aujourd\'hui !':streak===1?'Hier aussi — continue !':streak+' jours d\'affilée 🔥';
+}
+
+function logActivityToday(){
+  const k=new Date().toISOString().slice(0,10);
+  S.activity[k]=(S.activity[k]||0)+1;
+  save();updateStreak();
+}
+function logToday(k){S.activity[k]=Math.min((S.activity[k]||0)+1,4);save();renderHeatmap();}
+
+// ══════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════
+let notifTimer;
+function notify(msg,type='ok'){
+  const el=document.getElementById('notif');
+  const icons={ok:'✓',warn:'⚠',urg:'⚡'};
+  el.innerHTML=`<span>${icons[type]||'✓'}</span>${msg}`;
+  el.className='notif show';
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ══════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════
+function toggleSb(force){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('ov');
+  const open=force!==undefined?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',open);
+  ov.classList.toggle('show',open);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  load();
+  renderDash();
+  updateStreak();
+  updateXP();
+  updateBadges();
+  // Load score inputs
+  ['pm','fm','mf'].forEach(k=>{
+    const arr=S.scores[k];
+    const v=arr&&arr.length?arr[arr.length-1].v:null;
+    const inp=document.getElementById('inp-'+k);
+    if(inp&&v!==null)inp.value=v;
+  });
+  // Open first phase in English
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleSb(false);});
+});
+</script>
+</body>
+</html>
